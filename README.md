@@ -11,46 +11,46 @@ Once you've done that, run bash and follow the rest of the steps below.
 
 Copy and paste the following commands into a bash shell in order to install p2pool on Windows or Linux.
 
-*sudo apt-get update
-*sudo apt-get install pypy pypy-dev pypy-setuptools gcc build-essential git
+>sudo apt-get update
+>sudo apt-get install pypy pypy-dev pypy-setuptools gcc build-essential git
 
-*wget https://bootstrap.pypa.io/ez_setup.py -O - | sudo pypy
-*sudo rm setuptools-*.zip
+>wget https://bootstrap.pypa.io/ez_setup.py -O - | sudo pypy
+>sudo rm setuptools-*.zip
 
-*wget https://pypi.python.org/packages/source/z/zope.interface/zope.interface-4.1.3.tar.gz#md5=9ae3d24c0c7415deb249dd1a132f0f79
+>wget https://pypi.python.org/packages/source/z/zope.interface/zope.interface-4.1.3.tar.gz#md5=9ae3d24c0c7415deb249dd1a132f0f79
 tar zxf zope.interface-4.1.3.tar.gz
-*cd zope.interface-4.1.3/
-*sudo pypy setup.py install
-*cd ..
-*sudo rm -r zope.interface-4.1.3*
+>cd zope.interface-4.1.3/
+>sudo pypy setup.py install
+>cd ..
+>sudo rm -r zope.interface-4.1.3*
 
-*wget https://pypi.python.org/packages/source/T/Twisted/Twisted-15.4.0.tar.bz2
-*tar jxf Twisted-15.4.0.tar.bz2
-*cd Twisted-15.4.0
-*sudo pypy setup.py install
-*cd ..
-*sudo rm -r Twisted-15.4.0*
+>wget https://pypi.python.org/packages/source/T/Twisted/Twisted-15.4.0.tar.bz2
+>tar jxf Twisted-15.4.0.tar.bz2
+>cd Twisted-15.4.0
+>sudo pypy setup.py install
+>cd ..
+>sudo rm -r Twisted-15.4.0*
 
-*git clone https://github.com/jtoomim/p2pool.git
-*cd p2pool
-*git checkout 1mb_segwit
+>git clone https://github.com/jtoomim/p2pool.git
+>cd p2pool
+>git checkout 1mb_segwit
 
 You'll also need to install and run your bitcoind or altcoind of choice, and edit ~/.bitcoin/bitcoin.conf (or the corresponding file for litecoin or whatever other coin you intend to mine) with your bitcoind's RPC username and password. Launch your bitcoind or altcoind, and after it has finished downloading blocks and syncing, go to your p2pool directory and run
 
-*pypy run_p2pool.py
+>pypy run_p2pool.py
 
 **jtoomimnet vs mainnet*
 
 If you wish to use the original forrestv btc mainnet instead of jtoomimnet, then replace
 
-*git clone https://github.com/jtoomim/p2pool.git
-*cd p2pool
-*git checkout 1mb_segwit
+>git clone https://github.com/jtoomim/p2pool.git
+>cd p2pool
+>git checkout 1mb_segwit
 
 above with
 
-*git clone https://github.com/p2pool/p2pool.git
-*cd p2pool
+>git clone https://github.com/p2pool/p2pool.git
+>cd p2pool
 
 Note: The BTC p2pools currently have low hashrate, which means that payouts will be infrequent, large, and unpredictable. As of Feb 2018, blocks are found on jtoomimnet on average once every 25 days, and blocks are found on mainnet on average once every 108 days. Do not mine on BTC p2pool unless you are very patient and can tolerate receiving no revenue for several months.
 
