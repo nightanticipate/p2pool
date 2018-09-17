@@ -1,13 +1,18 @@
 **P2pool installation with pypy -- Windows**
 
+
 On Windows, pypy is only supported via the Windows Subsystem for Linux (WSL). P2pool on pypy on WSL is much faster than P2pool on
 CPython on native Windows. To install WSL, first follow the steps outlined here:
 
+
 https://msdn.microsoft.com/en-us/commandline/wsl/install_guide
+
 
 Once you've done that, run bash and follow the rest of the steps below.
 
+
 **P2pool installation with pypy -- Linux and Windows**
+
 
 Copy and paste the following commands into a bash shell in order to install p2pool on Windows or Linux.
 
