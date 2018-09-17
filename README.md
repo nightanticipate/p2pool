@@ -87,7 +87,7 @@ above with
 Note: The BTC p2pools currently have low hashrate, which means that payouts will be infrequent, large, and unpredictable. As of Feb 2018, blocks are found on jtoomimnet on average once every 25 days, and blocks are found on mainnet on average once every 108 days. Do not mine on BTC p2pool unless you are very patient and can tolerate receiving no revenue for several months.
 
 
-Miner setup
+**Miner setup**
 
 
 P2pool communicates with miners via the stratum protocol. For BTC, configure your miners with the following information:
