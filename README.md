@@ -94,7 +94,9 @@ P2pool communicates with miners via the stratum protocol. For BTC, configure you
 
 
 >URL: stratum+tcp://(Your node's IP address or hostname):9332
+
 >Worker: (Your bitcoin address)
+
 >Password: x
 
 
