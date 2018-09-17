@@ -12,6 +12,7 @@ Once you've done that, run bash and follow the rest of the steps below.
 Copy and paste the following commands into a bash shell in order to install p2pool on Windows or Linux.
 
 >sudo apt-get update
+
 >sudo apt-get install pypy pypy-dev pypy-setuptools gcc build-essential git
 
 >wget https://bootstrap.pypa.io/ez_setup.py -O - | sudo pypy
@@ -39,7 +40,7 @@ You'll also need to install and run your bitcoind or altcoind of choice, and edi
 
 >pypy run_p2pool.py
 
-**jtoomimnet vs mainnet*
+**jtoomimnet vs mainnet**
 
 If you wish to use the original forrestv btc mainnet instead of jtoomimnet, then replace
 
