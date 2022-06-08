@@ -413,7 +413,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     bitcoin_data.target_to_difficulty(share_info['bits'].target),
                     self.current_work.value['subsidy']*1e-8, self.node.net.PARENT.SYMBOL,
                     len(self.current_work.value['transactions']),
-                    sum((bitcoin_data.get_size(tx) for tx in self.current_work.value['transactions']))/1000.,
+                    sum((len(tx['data'])//2 for tx in self.current_work.value['transactions']))/1000.,
                 )
                 print_throttle = time.time()
 
@@ -443,6 +443,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                 new_gentx['marker'] = 0
                 new_gentx['flag'] = gentx['flag']
                 new_gentx['witness'] = gentx['witness']
+            new_hexed_gentx = bitcoin_data.tx_type.pack(new_gentx).encode('hex')
             
             header_hash = bitcoin_data.hash256(bitcoin_data.block_header_type.pack(header))
             pow_hash = self.node.net.PARENT.POW_FUNC(bitcoin_data.block_header_type.pack(header))
@@ -452,7 +453,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                         print
                         print 'GOT BLOCK FROM MINER! Passing to bitcoind! %s%064x' % (self.node.net.PARENT.BLOCK_EXPLORER_URL_PREFIX, header_hash)
                         print
-                    helper.submit_block(dict(header=header, txs=[new_gentx] + other_transactions), False, self.node)
+                    helper.submit_block(dict(header=header, txs=[new_hexed_gentx] + [tx["data"] for tx in other_transactions]), False, self.node)
             except:
                 log.err(None, 'Error while processing potential block:')
             

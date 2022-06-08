@@ -5,7 +5,7 @@ from twisted.internet import defer
 
 import p2pool
 from p2pool.bitcoin import data as bitcoin_data
-from p2pool.util import deferral, jsonrpc
+from p2pool.util import deferral, jsonrpc, pack
 txlookup = {}
 
 @deferral.retry('Error while checking Bitcoin connection:', 1)
@@ -48,7 +48,7 @@ def check(bitcoind, net, args):
 
 @deferral.retry('Error getting work from bitcoind:', 3)
 @defer.inlineCallbacks
-def getwork(bitcoind, net, use_getblocktemplate=False, txidcache={}, feecache={}, feefifo=[], known_txs={}):
+def getwork(bitcoind, net, use_getblocktemplate=False):
     def go():
         if use_getblocktemplate:
             return bitcoind.rpc_getblocktemplate(dict(mode='template', rules=['segwit','mweb'] if 'mweb' in getattr(net, 'SOFTFORKS_REQUIRED', set()) else ['segwit']))
@@ -68,65 +68,19 @@ def getwork(bitcoind, net, use_getblocktemplate=False, txidcache={}, feecache={}
             print >>sys.stderr, 'Error: Bitcoin version too old! Upgrade to v0.5 or newer!'
             raise deferral.RetrySilentlyException()
 
-    if not 'start' in txidcache: # we clear it every 30 min
-        txidcache['start'] = time.time()
-
     t0 = time.time()
-    unpacked_transactions = []
-    txhashes = []
-    cachehits = 0
-    cachemisses = 0
-    knownhits = 0
-    knownmisses = 0
-    for x in work['transactions']:
-        fee = x['fee']
-        x = x['data'] if isinstance(x, dict) else x
-        packed = None
-        if x in txidcache:
-            cachehits += 1
-            txid = (txidcache[x])
-            txhashes.append(txid)
-        else:
-            cachemisses += 1
-            packed = x.decode('hex')
-            txid = bitcoin_data.hash256(packed)
-            txidcache[x] = txid
-            txhashes.append(txid)
-        if txid in known_txs:
-            knownhits += 1
-            unpacked = known_txs[txid]
-        else:
-            knownmisses += 1
-            if not packed:
-                packed = x.decode('hex')
-            unpacked = bitcoin_data.tx_type.unpack(packed)
-        unpacked_transactions.append(unpacked)
-        # The only place where we can get information on transaction fees is in GBT results, so we need to store those
-        # for a while so we can spot shares that miscalculate the block reward
-        if not txid in feecache:
-            feecache[txid] = fee
-            feefifo.append(txid)
-
-    if time.time() - txidcache['start'] > 30*60.:
-        keepers = {(x['data'] if isinstance(x, dict) else x):txid for x, txid in zip(work['transactions'], txhashes)}
-        txidcache.clear()
-        txidcache.update(keepers)
-        # limit the fee cache to 100,000 entries, which should be about 10-20 MB
-        fum = 100000
-        while len(feefifo) > fum:
-            del feecache[feefifo.pop(0)]
     if 'height' not in work:
         work['height'] = (yield bitcoind.rpc_getblock(work['previousblockhash']))['height'] + 1
     elif p2pool.DEBUG:
         assert work['height'] == (yield bitcoind.rpc_getblock(work['previousblockhash']))['height'] + 1
 
     t1 = time.time()
-    if p2pool.BENCH: print "%8.3f ms for helper.py:getwork(). Cache: %i hits %i misses, %i known_tx %i unknown %i cached" % ((t1 - t0)*1000., cachehits, cachemisses, knownhits, knownmisses, len(txidcache))
+    if p2pool.BENCH: print "%8.3f ms for helper.py:getwork()." % ((t1 - t0)*1000.)
     defer.returnValue(dict(
         version=work['version'],
         previous_block=int(work['previousblockhash'], 16),
-        transactions=unpacked_transactions,
-        transaction_hashes=txhashes,
+        transactions=work['transactions'],
+        transaction_hashes=[bitcoin_data.hex_to_hash(x.get('hash')) if isinstance(x, dict) else None for x in work['transactions']],
         transaction_fees=[x.get('fee', None) if isinstance(x, dict) else None for x in work['transactions']],
         subsidy=work['coinbasevalue'],
         time=work['time'] if 'time' in work else work['curtime'],
@@ -152,21 +106,26 @@ def submit_block_p2p(block, factory, net):
 def submit_block_rpc(block, ignore_failure, bitcoind, bitcoind_work, net):
     segwit_rules = set(['!segwit', 'segwit'])
     segwit_activated = len(segwit_rules - set(bitcoind_work.value['rules'])) < len(segwit_rules)
+    # hack: manually serialize blocks with hex transactions instead of using bitcoin/data.py
+    hexed_block = bitcoin_data.block_header_type.pack(block['header']).encode('hex') + \
+                  pack.VarIntType().pack(len(block['txs'])).encode('hex') + \
+                  ''.join(block['txs'])
     if bitcoind_work.value['use_getblocktemplate']:
         try:
-            result = yield bitcoind.rpc_submitblock((bitcoin_data.block_type if segwit_activated else bitcoin_data.stripped_block_type).pack(block).encode('hex') + bitcoind_work.value['mweb'])
+            result = yield bitcoind.rpc_submitblock(hexed_block + bitcoind_work.value['mweb'])
         except jsonrpc.Error_for_code(-32601): # Method not found, for older litecoin versions
-            result = yield bitcoind.rpc_getblocktemplate(dict(mode='submit', data=bitcoin_data.block_type.pack(block).encode('hex')))
+            result = yield bitcoind.rpc_getblocktemplate(dict(mode='submit', data=hexed_block))
         success = result is None
     else:
-        result = yield bitcoind.rpc_getmemorypool(bitcoin_data.block_type.pack(block).encode('hex'))
+        result = yield bitcoind.rpc_getmemorypool(hexed_block)
         success = result
     success_expected = net.PARENT.POW_FUNC(bitcoin_data.block_header_type.pack(block['header'])) <= block['header']['bits'].target
     if (not success and success_expected and not ignore_failure) or (success and not success_expected):
         print >>sys.stderr, 'Block submittal result: %s (%r) Expected: %s' % (success, result, success_expected)
 
 def submit_block(block, ignore_failure, node):
-    submit_block_p2p(block, node.factory, node.net)
+    # fixme: in bitcoin/data.py, block_type needs to be updated to accept hex raw transactions
+    # submit_block_p2p(block, node.factory, node.net)
     submit_block_rpc(block, ignore_failure, node.bitcoind, node.bitcoind_work,
                      node.net)
 

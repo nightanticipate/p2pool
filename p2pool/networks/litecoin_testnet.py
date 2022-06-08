@@ -21,3 +21,5 @@ MINIMUM_PROTOCOL_VERSION = 3301
 SEGWIT_ACTIVATION_VERSION = 17
 BLOCK_MAX_SIZE = 1000000
 BLOCK_MAX_WEIGHT = 4000000
+# Some networks have block inclusion/order rules that p2pool doesn't understand (e.g. Litecoin's MWEB)
+IMMUTABLE_BLOCKS = True

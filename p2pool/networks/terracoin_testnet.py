@@ -19,3 +19,4 @@ VERSION_CHECK = lambda v: True
 VERSION_WARNING = lambda v: 'Upgrade Terracoin to >= 0.8.0.4!' if v < 80004 else None
 BLOCK_MAX_SIZE = 1000000
 BLOCK_MAX_WEIGHT = 4000000
+IMMUTABLE_BLOCKS = False

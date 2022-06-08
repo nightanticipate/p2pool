@@ -32,6 +32,9 @@ def hash160(data):
         return 0x384f570ccc88ac2e7e00b026d1690a3fca63dd0 # hack for people who don't have openssl - this is the only value that p2pool ever hashes
     return pack.IntType(160).unpack(hashlib.new('ripemd160', hashlib.sha256(data).digest()).digest())
 
+def hex_to_hash(data):
+    return unpack256(data.decode('hex')[::-1])
+
 class ChecksummedType(pack.Type):
     def __init__(self, inner, checksum_func=lambda data: hashlib.sha256(hashlib.sha256(data).digest()).digest()[:4]):
         self.inner = inner
@@ -137,10 +140,6 @@ tx_id_type = pack.ComposedType([
     ('lock_time', pack.IntType(32))
 ])
 
-def get_stripped_size(tx):
-    if not 'stripped_size' in tx:
-        tx['stripped_size'] = tx_id_type.packed_size(tx)
-    return tx['stripped_size']
 def get_size(tx):
     if not 'size' in tx:
         tx['size'] = tx_id_type.packed_size(tx)
@@ -475,16 +474,6 @@ def get_cashaddr_pubkey_hash(address, net):
 
 def get_witness_commitment_hash(witness_root_hash, witness_reserved_value):
     return hash256(merkle_record_type.pack(dict(left=witness_root_hash, right=witness_reserved_value)))
-
-def get_wtxid(tx, txid=None, txhash=None):
-    has_witness = False
-    if is_segwit_tx(tx):
-        assert len(tx['tx_ins']) == len(tx['witness'])
-        has_witness = any(len(w) > 0 for w in tx['witness'])
-    if has_witness:
-        return hash256(tx_type.pack(tx)) if txhash is None else txhash
-    else:
-        return hash256(tx_id_type.pack(tx)) if txid is None else txid
 
 def get_txid(tx):
     return hash256(tx_id_type.pack(tx))
