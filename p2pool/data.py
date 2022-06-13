@@ -189,7 +189,7 @@ class BaseShare(object):
         for tx_hash, fee in desired_other_transaction_hashes_and_fees:
             if known_txs is not None:
                 this_real_size     = len(known_txs[tx_hash]['data'])//2
-                this_weight        = known_txs[tx_hash]['weight']
+                this_weight        = known_txs[tx_hash]['weight'] if hasattr(known_txs[tx_hash], 'weight') else len(known_txs[tx_hash]['data'])*2
             else: # we're just verifying someone else's share. We'll calculate sizes in should_punish_reason()
                 this_real_size = 0
                 this_weight = 0
@@ -586,7 +586,7 @@ class BaseShare(object):
             pass
         else:
             if not hasattr(self, 'all_tx_size'):
-                self.all_txs_weight = sum(tx['weight'] for tx in other_txs)
+                self.all_txs_weight = sum(tx['weight'] if hasattr(tx, 'weight') else len(tx['data'])*2 for tx in other_txs)
             if self.all_txs_weight + 4*80 + self.gentx_weight > tracker.net.BLOCK_MAX_WEIGHT:
                 return True, 'txs over block weight limit'
         
