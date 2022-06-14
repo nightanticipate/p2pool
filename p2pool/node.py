@@ -258,12 +258,6 @@ class Node(object):
             added_known_txs = {hsh:tx for hsh,tx in new_mining_txs.iteritems() if not hsh in self.known_txs_var.value}
             self.mining_txs_var.set(new_mining_txs)
             self.known_txs_var.add(added_known_txs)
-        # add p2p transactions from bitcoind to known_txs
-        @self.factory.new_tx.watch
-        def _(tx):
-            self.known_txs_var.add({
-                bitcoin_data.hash256(bitcoin_data.tx_type.pack(tx)): tx,
-            })
 
         if self.cur_share_ver < 34:
             # forward transactions seen to bitcoind
@@ -297,23 +291,7 @@ class Node(object):
             print
 
         def forget_old_txs():
-            new_known_txs = {}
-            if self.p2p_node is not None:
-                for peer in self.p2p_node.peers.itervalues():
-                    new_known_txs.update(peer.remembered_txs)
-            new_known_txs.update(self.mining_txs_var.value)
-            new_known_txs.update(self.mining2_txs_var.value)
-            for share in self.tracker.get_chain(self.best_share_var.value, min(120, self.tracker.get_height(self.best_share_var.value))):
-                if share.VERSION >= 34:
-                    continue
-                for tx_hash in share.new_transaction_hashes:
-                    if tx_hash in self.known_txs_var.value:
-                        new_known_txs[tx_hash] = self.known_txs_var.value[tx_hash]
-            self.known_txs_var.set(new_known_txs)
-        if self.cur_share_ver < 34:
-            t = deferral.RobustLoopingCall(forget_old_txs)
-            t.start(10)
-            stop_signal.watch(t.stop)
+            pass
         
         t = deferral.RobustLoopingCall(self.clean_tracker)
         t.start(5)

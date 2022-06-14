@@ -74,9 +74,7 @@ def getwork(bitcoind, net, use_getblocktemplate=False):
     elif p2pool.DEBUG:
         assert work['height'] == (yield bitcoind.rpc_getblock(work['previousblockhash']))['height'] + 1
 
-    t1 = time.time()
-    if p2pool.BENCH: print "%8.3f ms for helper.py:getwork()." % ((t1 - t0)*1000.)
-    defer.returnValue(dict(
+    new_work = dict(
         version=work['version'],
         previous_block=int(work['previousblockhash'], 16),
         transactions=work['transactions'],
@@ -92,7 +90,10 @@ def getwork(bitcoind, net, use_getblocktemplate=False):
         use_getblocktemplate=use_getblocktemplate,
         latency=end - start,
         mweb='01' + work['mweb'] if 'mweb' in work else '',
-    ))
+    )
+    t1 = time.time()
+    if p2pool.BENCH: print "%8.3f ms for helper.py:getwork()." % ((t1 - t0)*1000.)
+    defer.returnValue(new_work)
 
 @deferral.retry('Error submitting primary block: (will retry)', 10, 10)
 def submit_block_p2p(block, factory, net):

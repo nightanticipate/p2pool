@@ -71,7 +71,7 @@ class Protocol(p2protocol.Protocol):
     def handle_inv(self, invs):
         for inv in invs:
             if inv['type'] == 'tx':
-                self.send_getdata(requests=[inv])
+                pass
             elif inv['type'] == 'block':
                 self.factory.new_block.happened(inv['hash'])
             else:
@@ -109,7 +109,7 @@ class Protocol(p2protocol.Protocol):
         ('tx', bitcoin_data.tx_type),
     ])
     def handle_tx(self, tx):
-        self.factory.new_tx.happened(tx)
+        pass
     
     message_block = pack.ComposedType([
         ('block', bitcoin_data.block_type),
@@ -175,7 +175,6 @@ class ClientFactory(protocol.ReconnectingClientFactory):
         self.conn = variable.Variable(None)
         
         self.new_block = variable.Event()
-        self.new_tx = variable.Event()
         self.new_headers = variable.Event()
     
     def buildProtocol(self, addr):
