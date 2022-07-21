@@ -18,6 +18,7 @@ import p2pool, p2pool.data as p2pool_data
 print_throttle = 0.0
 
 class WorkerBridge(worker_interface.WorkerBridge):
+    COINBASE_XNONCE1_LENGTH = 1
     COINBASE_NONCE_LENGTH = 8
     
     def __init__(self, node, my_address, donation_percentage, merged_urls,
