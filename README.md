@@ -1,3 +1,5 @@
+Confirmed working on 1st April 2024 mining blocks on LTC v0.21.3, DOGE v1.14.7, DINGO v1.16.0.9 and CASH v3.6.9 b0.2 without issues.
+
 **P2pool installation with pypy -- Windows**
 
 
