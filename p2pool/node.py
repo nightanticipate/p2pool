@@ -169,9 +169,6 @@ class Node(object):
         self.mining2_txs_var = variable.Variable({}) # hash -> tx
         self.best_share_var = variable.Variable(None)
         self.desired_var = variable.Variable(None)
-        self.txidcache = {}
-        self.feecache = {}
-        self.feefifo = []
         self.punish = False
 
         self.tracker = p2pool_data.OkayTracker(self.net)
@@ -211,7 +208,7 @@ class Node(object):
             while stop_signal.times == 0:
                 flag = self.factory.new_block.get_deferred()
                 try:
-                    self.bitcoind_work.set((yield helper.getwork(self.bitcoind, self.net, self.bitcoind_work.value['use_getblocktemplate'], self.txidcache, self.feecache, self.feefifo, self.known_txs_var.value)))
+                    self.bitcoind_work.set((yield helper.getwork(self.bitcoind, self.net, self.bitcoind_work.value['use_getblocktemplate'])))
                     self.check_and_purge_txs()
                 except:
                     log.err()
@@ -261,12 +258,6 @@ class Node(object):
             added_known_txs = {hsh:tx for hsh,tx in new_mining_txs.iteritems() if not hsh in self.known_txs_var.value}
             self.mining_txs_var.set(new_mining_txs)
             self.known_txs_var.add(added_known_txs)
-        # add p2p transactions from bitcoind to known_txs
-        @self.factory.new_tx.watch
-        def _(tx):
-            self.known_txs_var.add({
-                bitcoin_data.hash256(bitcoin_data.tx_type.pack(tx)): tx,
-            })
 
         if self.cur_share_ver < 34:
             # forward transactions seen to bitcoind
@@ -300,23 +291,7 @@ class Node(object):
             print
 
         def forget_old_txs():
-            new_known_txs = {}
-            if self.p2p_node is not None:
-                for peer in self.p2p_node.peers.itervalues():
-                    new_known_txs.update(peer.remembered_txs)
-            new_known_txs.update(self.mining_txs_var.value)
-            new_known_txs.update(self.mining2_txs_var.value)
-            for share in self.tracker.get_chain(self.best_share_var.value, min(120, self.tracker.get_height(self.best_share_var.value))):
-                if share.VERSION >= 34:
-                    continue
-                for tx_hash in share.new_transaction_hashes:
-                    if tx_hash in self.known_txs_var.value:
-                        new_known_txs[tx_hash] = self.known_txs_var.value[tx_hash]
-            self.known_txs_var.set(new_known_txs)
-        if self.cur_share_ver < 34:
-            t = deferral.RobustLoopingCall(forget_old_txs)
-            t.start(10)
-            stop_signal.watch(t.stop)
+            pass
         
         t = deferral.RobustLoopingCall(self.clean_tracker)
         t.start(5)
@@ -324,7 +299,7 @@ class Node(object):
     
     def set_best_share(self):
         oldpunish = self.punish
-        best, desired, decorated_heads, bad_peer_addresses, self.punish= self.tracker.think(self.get_height_rel_highest, self.get_height, self.bitcoind_work.value['previous_block'], self.bitcoind_work.value['bits'], self.known_txs_var.value, self.feecache)
+        best, desired, decorated_heads, bad_peer_addresses, self.punish= self.tracker.think(self.get_height_rel_highest, self.get_height, self.bitcoind_work.value['previous_block'], self.bitcoind_work.value['bits'], self.known_txs_var.value)
         if self.punish and not oldpunish and best == self.best_share_var.value: # need to reissue work with lower difficulty
             self.best_share_var.changed.happened(best) # triggers wb.new_work_event to reissue work
 
@@ -346,7 +321,7 @@ class Node(object):
         return p2pool_data.get_expected_payouts(self.tracker, self.best_share_var.value, self.bitcoind_work.value['bits'].target, self.bitcoind_work.value['subsidy'], self.net)
     
     def clean_tracker(self):
-        best, desired, decorated_heads, bad_peer_addresses, self.punish = self.tracker.think(self.get_height_rel_highest, self.get_height, self.bitcoind_work.value['previous_block'], self.bitcoind_work.value['bits'], self.known_txs_var.value, self.feecache)
+        best, desired, decorated_heads, bad_peer_addresses, self.punish = self.tracker.think(self.get_height_rel_highest, self.get_height, self.bitcoind_work.value['previous_block'], self.bitcoind_work.value['bits'], self.known_txs_var.value)
         
         # eat away at heads
         if decorated_heads:
